@@ -5,27 +5,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-<<<<<<< HEAD
-    "start": "npm start --prefix backend",
-    "dev": "npm run dev --prefix backend",
-    "test": "npm test --prefix backend",
-    "seed": "npm run seed --prefix backend",
-    "prisma:migrate": "npm run prisma:migrate --prefix backend",
-    "prisma:generate": "npm run prisma:generate --prefix backend",
-    "frontend:dev": "vite",
-    "frontend:build": "vite build",
-    "frontend:preview": "vite preview"
-=======
     "dev": "vite",
-    "dev:frontend": "vite",
-    "dev:backend": "node server/index.js",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "npm start --prefix backend",
     "server": "node server/index.js",
+    "dev:backend": "node server/index.js",
     "seed": "node -e \"import('./server/db/database.js').then(d=>d.initSchema()).then(()=>import('./server/db/seedData.js')).then(s=>s.seedDatabase(true)).then(()=>process.exit(0));\"",
     "test": "node --test server/tests/api.test.js",
-    "ai-service": "python ai-service/main.py",
-    "build": "vite build",
-    "preview": "vite preview"
->>>>>>> cb8121f (Implement Phase 3 Digital Twin campus integration)
+    "ai-service": "python ai-service/main.py"
   },
   "dependencies": {
     "cors": "^2.8.6",
