@@ -1,12 +1,19 @@
 {
   "name": "ecopulse-campus-ai",
-  "private": true,
   "version": "1.0.0",
+  "description": "AI-Powered Sustainable Campus Hackathon Solution",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "start": "npm start --prefix backend",
+    "dev": "npm run dev --prefix backend",
+    "test": "npm test --prefix backend",
+    "seed": "npm run seed --prefix backend",
+    "prisma:migrate": "npm run prisma:migrate --prefix backend",
+    "prisma:generate": "npm run prisma:generate --prefix backend",
+    "frontend:dev": "vite",
+    "frontend:build": "vite build",
+    "frontend:preview": "vite preview"
   },
   "dependencies": {
     "lucide-react": "^1.16.0",

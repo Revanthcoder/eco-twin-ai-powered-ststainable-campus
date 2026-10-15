@@ -1,0 +1,339 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String            @id @default(cuid())
+  email            String            @unique
+  passwordHash     String
+  name             String
+  role             String            @default("VIEWER") // ADMIN, FACILITY_MANAGER, VIEWER
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  maintenanceTasks MaintenanceTask[]
+  reportsGenerated Report[]
+
+  @@map("users")
+}
+
+model Building {
+  id                 String            @id @default(cuid())
+  name               String
+  code               String            @unique
+  type               String            // ACADEMIC, RESIDENTIAL, ADMINISTRATIVE, DINING, SPORTS, LAB
+  totalAreaSqFt      Float
+  floors             Int               @default(1)
+  yearBuilt          Int?
+  occupancyCapacity  Int               @default(100)
+  status             String            @default("ACTIVE") // ACTIVE, MAINTENANCE, INACTIVE
+  coordinatesJson    String?           // Digital twin spatial coordinates { x, y, z, dimensions }
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  zones              Zone[]
+  sensors            Sensor[]
+  energyReadings     EnergyReading[]
+  waterReadings      WaterReading[]
+  wasteRecords       WasteRecord[]
+  alerts             Alert[]
+  maintenanceTasks   MaintenanceTask[]
+  carbonEmissions    CarbonEmission[]
+
+  @@map("buildings")
+}
+
+model Zone {
+  id               String            @id @default(cuid())
+  buildingId       String
+  building         Building          @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  name             String
+  floor            Int               @default(1)
+  zoneType         String            // CLASSROOM, LAB, OFFICE, CORRIDOR, CAFETERIA, RESTROOM
+  status           String            @default("ACTIVE")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  sensors          Sensor[]
+  wasteRecords     WasteRecord[]
+  alerts           Alert[]
+  maintenanceTasks MaintenanceTask[]
+
+  @@map("zones")
+}
+
+model Sensor {
+  id              String          @id @default(cuid())
+  buildingId      String
+  building        Building        @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  zoneId          String?
+  zone            Zone?           @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  code            String          @unique
+  name            String
+  sensorType      String          // ENERGY_METER, WATER_METER, WASTE_SENSOR, AIR_QUALITY
+  unit            String          // kWh, L, %, ppm
+  status          String          @default("ONLINE") // ONLINE, OFFLINE, MALFUNCTION
+  locationDetails String?
+  lastPingAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  energyReadings  EnergyReading[]
+  waterReadings   WaterReading[]
+  wasteRecords    WasteRecord[]
+
+  @@index([buildingId, sensorType])
+  @@map("sensors")
+}
+
+model EnergyReading {
+  id             String    @id @default(cuid())
+  buildingId     String
+  building       Building  @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  sensorId       String?
+  sensor         Sensor?   @relation(fields: [sensorId], references: [id], onDelete: SetNull)
+  timestamp      DateTime
+  consumptionKwh Float
+  peakDemandKw   Float?
+  source         String    @default("GRID") // GRID, SOLAR, GENERATOR
+  isDemoData     Boolean   @default(false)
+  notes          String?
+  createdAt      DateTime  @default(now())
+
+  @@index([buildingId, timestamp])
+  @@index([timestamp])
+  @@map("energy_readings")
+}
+
+model WaterReading {
+  id           String    @id @default(cuid())
+  buildingId   String
+  building     Building  @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  sensorId     String?
+  sensor       Sensor?   @relation(fields: [sensorId], references: [id], onDelete: SetNull)
+  timestamp    DateTime
+  volumeLitres Float
+  flowRateLpm  Float?    // Litres per minute
+  category     String    @default("POTABLE") // POTABLE, RECYCLED, IRRIGATION
+  isDemoData   Boolean   @default(false)
+  notes        String?
+  createdAt    DateTime  @default(now())
+
+  @@index([buildingId, timestamp])
+  @@index([timestamp])
+  @@map("water_readings")
+}
+
+model WasteRecord {
+  id              String    @id @default(cuid())
+  buildingId      String
+  building        Building  @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  zoneId          String?
+  zone            Zone?     @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  sensorId        String?
+  sensor          Sensor?   @relation(fields: [sensorId], references: [id], onDelete: SetNull)
+  timestamp       DateTime
+  binType         String    // GENERAL, RECYCLING, COMPOST, HAZARDOUS, E_WASTE
+  fullnessPercent Float     // 0 to 100%
+  weightKg        Float?    // measured or calculated kg
+  isDemoData      Boolean   @default(false)
+  notes           String?
+  createdAt       DateTime  @default(now())
+
+  @@index([buildingId, timestamp])
+  @@index([timestamp])
+  @@map("waste_records")
+}
+
+model WasteDetectionEvent {
+  id                String    @id @default(cuid())
+  buildingId        String?
+  zoneId            String?
+  timestamp         DateTime  @default(now())
+  wasteCategory     String    // PLASTIC, PAPER, ORGANIC, METAL, GLASS, E_WASTE, UNKNOWN
+  confidenceScore   Float     // 0.0 to 1.0
+  isModelEstimate   Boolean   @default(true)
+  estimatedWeightKg Float?
+  boundingBoxJson   String?   // JSON representation of detection boxes
+  imageUrl          String?
+  detectedBy        String    @default("AI_CV") // AI_CV, SENSOR, MANUAL
+  rawMetadata       String?   // Raw payload from model
+  createdAt         DateTime  @default(now())
+
+  @@index([timestamp])
+  @@map("waste_detection_events")
+}
+
+model Alert {
+  id               String            @id @default(cuid())
+  buildingId       String?
+  building         Building?         @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  zoneId           String?
+  zone             Zone?             @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  title            String
+  description      String
+  category         String            // ENERGY, WATER, WASTE, AIR_QUALITY, SYSTEM
+  severity         String            // LOW, MEDIUM, HIGH, CRITICAL
+  status           String            @default("OPEN") // OPEN, ACKNOWLEDGED, RESOLVED, DISMISSED
+  triggerSource    String            // ENERGY_THRESHOLD, UNUSUAL_WATER_FLOW, BIN_FULLNESS, AI_ANOMALY
+  triggerValue     Float?
+  thresholdValue   Float?
+  unit             String?
+  isDemoData       Boolean           @default(false)
+  acknowledgedAt   DateTime?
+  acknowledgedBy   String?
+  resolvedAt       DateTime?
+  resolvedBy       String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  history          AlertHistory[]
+  maintenanceTasks MaintenanceTask[]
+
+  @@index([status, severity])
+  @@index([buildingId])
+  @@map("alerts")
+}
+
+model AlertHistory {
+  id             String   @id @default(cuid())
+  alertId        String
+  alert          Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  previousStatus String
+  newStatus      String
+  changedBy      String?
+  note           String?
+  createdAt      DateTime @default(now())
+
+  @@map("alert_history")
+}
+
+model MaintenanceTask {
+  id             String               @id @default(cuid())
+  buildingId     String?
+  building       Building?            @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  zoneId         String?
+  zone           Zone?                @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  alertId        String?
+  alert          Alert?               @relation(fields: [alertId], references: [id], onDelete: SetNull)
+  assignedToId   String?
+  assignedToUser User?                @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  title          String
+  description    String
+  priority       String               @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  status         String               @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+  dueDate        DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  history        MaintenanceHistory[]
+
+  @@index([status, priority])
+  @@index([buildingId])
+  @@map("maintenance_tasks")
+}
+
+model MaintenanceHistory {
+  id             String          @id @default(cuid())
+  taskId         String
+  task           MaintenanceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  previousStatus String
+  newStatus      String
+  changedBy      String?
+  note           String?
+  createdAt      DateTime        @default(now())
+
+  @@map("maintenance_history")
+}
+
+model SustainabilityScore {
+  id                    String   @id @default(cuid())
+  calculationPeriod     String   // DAILY, WEEKLY, MONTHLY
+  periodStart           DateTime
+  periodEnd             DateTime
+  totalScore            Float    // 0 to 100
+  energyScore           Float    // 0 to 100
+  waterScore            Float    // 0 to 100
+  wasteScore            Float    // 0 to 100
+  carbonScore           Float    // 0 to 100
+  componentWeightsJson  String   // JSON { energy: 0.35, water: 0.25, waste: 0.20, carbon: 0.20 }
+  dataFreshnessHours    Float
+  missingDataPenalty    Float
+  detailsJson           String   // JSON full breakdown
+  createdAt             DateTime @default(now())
+
+  @@index([periodStart, periodEnd])
+  @@map("sustainability_scores")
+}
+
+model CarbonEmission {
+  id                         String    @id @default(cuid())
+  buildingId                 String?
+  building                   Building? @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  periodStart                DateTime
+  periodEnd                  DateTime
+  scope1KgCo2e               Float     @default(0.0)
+  scope2KgCo2e               Float     @default(0.0)
+  scope3KgCo2e               Float     @default(0.0)
+  totalKgCo2e                Float
+  gridEmissionFactor         Float     // kg CO2e / kWh
+  waterEmissionFactor        Float     // kg CO2e / Litre
+  wasteEmissionFactor        Float     // kg CO2e / kg waste
+  isEstimate                 Boolean   @default(true)
+  calculationAssumptionsJson String
+  createdAt                  DateTime  @default(now())
+
+  @@index([buildingId, periodStart])
+  @@map("carbon_emissions")
+}
+
+model SimulationScenario {
+  id                  String   @id @default(cuid())
+  name                String
+  description         String?
+  baselinePeriodStart DateTime
+  baselinePeriodEnd   DateTime
+  parametersJson      String   // JSON { energyReductionPct, waterEfficiencyPct, solarAdditionKw, tariffPerKwh }
+  baselineKwh         Float
+  projectedKwh        Float
+  kwhSavings          Float
+  baselineCost        Float?
+  projectedCost       Float?
+  costSavings         Float?
+  baselineKgCo2e      Float?
+  projectedKgCo2e     Float?
+  co2eSavings         Float?
+  assumptionsJson     String   // JSON assumptions
+  createdBy           String?
+  createdAt           DateTime @default(now())
+
+  @@map("simulation_scenarios")
+}
+
+model Report {
+  id                  String   @id @default(cuid())
+  title               String
+  reportType          String   // CAMPUS_SUMMARY, ENERGY_AUDIT, WATER_CONSERVATION, WASTE_DIVERSION, CARBON_ACCOUNTING
+  periodStart         DateTime
+  periodEnd           DateTime
+  dataCoveragePercent Float
+  summaryMetricsJson  String
+  assumptionsJson     String
+  generatedById       String?
+  generatedByUser     User?    @relation(fields: [generatedById], references: [id], onDelete: SetNull)
+  createdAt           DateTime @default(now())
+
+  @@map("reports")
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  dataType    String   @default("STRING") // STRING, FLOAT, INT, BOOLEAN, JSON
+  description String?
+  isPublic    Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}

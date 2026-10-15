@@ -114,7 +114,7 @@ VITE_API_URL=http://127.0.0.1:8000
 ### 4. Start the Development Server
 
 ```powershell
-npm run dev
+npm run frontend:dev
 ```
 
 Open **http://localhost:5173** in your browser.
@@ -122,8 +122,8 @@ Open **http://localhost:5173** in your browser.
 ### 5. Build for Production
 
 ```powershell
-npm run build
-npm run preview
+npm run frontend:build
+npm run frontend:preview
 ```
 
 ---
@@ -195,3 +195,30 @@ MIT License — see [LICENSE](LICENSE) for details.
 ---
 
 *Built for the AI-Powered Sustainable Campus Hackathon 2026 · EcoPulse AI Team*
+
+---
+
+## Backend Quick Start
+
+The backend API is implemented in `backend/`. From the repository root, start it with:
+
+```bash
+npm install --prefix backend
+npm run prisma:generate
+npm run prisma:migrate
+npm run seed
+npm start
+```
+
+The API base URL is `http://localhost:5000/api`.
+
+- Health check: `http://localhost:5000/api/health`
+- Swagger documentation: `http://localhost:5000/api/docs`
+- Tests: `npm test`
+
+## Documentation & Contracts
+
+- [Backend Documentation](./backend/README.md)
+- [Frontend API Contract](./backend/docs/FRONTEND_API_CONTRACT.md)
+- [AI Integration Contract](./backend/docs/AI_SERVICE_CONTRACT.md)
+- [Prisma Schema](./backend/prisma/schema.prisma)

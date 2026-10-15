@@ -1,0 +1,442 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "AI-Powered Sustainable Campus API",
+    "version": "1.0.0",
+    "description": "Comprehensive REST API for the AI-Powered Sustainable Campus platform. Integrates IoT telemetry, digital twin models, What-If simulation, automated alerts, and Person 3 AI microservices."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "StandardSuccess": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "data": { "type": "object" },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "timestamp": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      },
+      "StandardError": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string", "example": "VALIDATION_ERROR" },
+              "message": { "type": "string", "example": "Request validation failed" },
+              "details": { "type": "array", "items": { "type": "object" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Verifies API server and database connectivity",
+        "responses": {
+          "200": { "description": "System is healthy" },
+          "503": { "description": "Database disconnected or degraded" }
+        }
+      }
+    },
+    "/system/status": {
+      "get": {
+        "summary": "Detailed system and data coverage status",
+        "description": "Returns counts of buildings, sensors, readings, alerts, and freshness timestamps",
+        "responses": {
+          "200": { "description": "System status payload" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Authenticate user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "example": "admin@campus.edu" },
+                  "password": { "type": "string", "example": "CampusPass2026!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Login successful, returns JWT token" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "summary": "Unified sustainability dashboard overview",
+        "responses": {
+          "200": { "description": "Aggregated energy, water, waste, score, and alerts" }
+        }
+      }
+    },
+    "/dashboard/trends": {
+      "get": {
+        "summary": "Multi-metric historical trends",
+        "responses": {
+          "200": { "description": "Daily cross-metric chart points" }
+        }
+      }
+    },
+    "/dashboard/building-comparison": {
+      "get": {
+        "summary": "Cross-building benchmark comparison",
+        "responses": {
+          "200": { "description": "Comparison rankings and energy intensity per sq ft" }
+        }
+      }
+    },
+    "/buildings": {
+      "get": {
+        "summary": "List campus buildings with digital twin metadata",
+        "responses": {
+          "200": { "description": "Array of buildings" }
+        }
+      }
+    },
+    "/buildings/{id}": {
+      "get": {
+        "summary": "Get building details, zones, and sensors",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Building details" },
+          "404": { "description": "Building not found" }
+        }
+      }
+    },
+    "/buildings/{id}/metrics": {
+      "get": {
+        "summary": "Get aggregate energy, water, and waste metrics for a building",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Building metrics summary" }
+        }
+      }
+    },
+    "/zones": {
+      "get": {
+        "summary": "List campus zones",
+        "responses": {
+          "200": { "description": "Array of zones" }
+        }
+      }
+    },
+    "/energy": {
+      "get": {
+        "summary": "Get energy readings with pagination and filters",
+        "responses": {
+          "200": { "description": "Energy readings list" }
+        }
+      }
+    },
+    "/energy/summary": {
+      "get": {
+        "summary": "Get energy consumption summary and renewable percentage",
+        "responses": {
+          "200": { "description": "Summary in kWh" }
+        }
+      }
+    },
+    "/energy/trends": {
+      "get": {
+        "summary": "Get energy time series trends",
+        "responses": {
+          "200": { "description": "Grouped datapoints" }
+        }
+      }
+    },
+    "/energy/readings": {
+      "post": {
+        "summary": "Record a new energy reading",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["buildingId", "consumptionKwh"],
+                "properties": {
+                  "buildingId": { "type": "string" },
+                  "consumptionKwh": { "type": "number", "minimum": 0 },
+                  "peakDemandKw": { "type": "number" },
+                  "source": { "type": "string", "enum": ["GRID", "SOLAR", "GENERATOR"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Reading recorded" }
+        }
+      }
+    },
+    "/water": {
+      "get": {
+        "summary": "Get water consumption readings",
+        "responses": {
+          "200": { "description": "Water readings list" }
+        }
+      }
+    },
+    "/water/summary": {
+      "get": {
+        "summary": "Get water consumption summary and anomaly status",
+        "responses": {
+          "200": { "description": "Summary in Litres" }
+        }
+      }
+    },
+    "/water/trends": {
+      "get": {
+        "summary": "Get water consumption trends",
+        "responses": {
+          "200": { "description": "Grouped trend datapoints" }
+        }
+      }
+    },
+    "/waste": {
+      "get": {
+        "summary": "Get waste bin records and fullness",
+        "responses": {
+          "200": { "description": "Waste records list" }
+        }
+      }
+    },
+    "/waste/summary": {
+      "get": {
+        "summary": "Get waste summary and diversion rate",
+        "responses": {
+          "200": { "description": "Waste weight in kg and diversion %" }
+        }
+      }
+    },
+    "/waste/detections": {
+      "get": {
+        "summary": "Get AI computer vision waste detection events",
+        "responses": {
+          "200": { "description": "Array of detection events" }
+        }
+      },
+      "post": {
+        "summary": "Record a waste detection event",
+        "responses": {
+          "201": { "description": "Event recorded" }
+        }
+      }
+    },
+    "/alerts": {
+      "get": {
+        "summary": "Get active sustainability alerts",
+        "responses": {
+          "200": { "description": "Alerts list" }
+        }
+      }
+    },
+    "/alerts/{id}": {
+      "get": {
+        "summary": "Get alert details and audit history",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Alert details" }
+        }
+      },
+      "patch": {
+        "summary": "Acknowledge or resolve an alert",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["OPEN", "ACKNOWLEDGED", "RESOLVED", "DISMISSED"] },
+                  "note": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Alert updated" }
+        }
+      }
+    },
+    "/alerts/evaluate": {
+      "post": {
+        "summary": "Run automated sustainability rule engine evaluation with deduplication",
+        "responses": {
+          "200": { "description": "Rule evaluation results and created alerts" }
+        }
+      }
+    },
+    "/sustainability-score": {
+      "get": {
+        "summary": "Get current campus sustainability score (CSI-100)",
+        "responses": {
+          "200": { "description": "Score out of 100 with component weights and penalties" }
+        }
+      }
+    },
+    "/carbon": {
+      "get": {
+        "summary": "Get greenhouse gas emissions breakdown (Scopes 1, 2, and 3)",
+        "responses": {
+          "200": { "description": "Emissions in kg CO2e" }
+        }
+      }
+    },
+    "/simulator": {
+      "post": {
+        "summary": "Run What-If scenario simulation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "example": "20% Solar + LED Retrofit" },
+                  "energyReductionPct": { "type": "number", "example": 15 },
+                  "waterEfficiencyPct": { "type": "number", "example": 10 },
+                  "solarAdditionKw": { "type": "number", "example": 50 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Simulation completed and saved" }
+        }
+      }
+    },
+    "/maintenance": {
+      "get": {
+        "summary": "List maintenance tasks",
+        "responses": {
+          "200": { "description": "Array of maintenance tasks" }
+        }
+      },
+      "post": {
+        "summary": "Create maintenance task",
+        "responses": {
+          "201": { "description": "Task created" }
+        }
+      }
+    },
+    "/maintenance/{id}": {
+      "patch": {
+        "summary": "Update task status with transition validation",
+        "responses": {
+          "200": { "description": "Task status updated" }
+        }
+      }
+    },
+    "/reports": {
+      "get": {
+        "summary": "List generated reports",
+        "responses": {
+          "200": { "description": "Array of reports" }
+        }
+      },
+      "post": {
+        "summary": "Generate a new sustainability report from database records",
+        "responses": {
+          "201": { "description": "Report generated" }
+        }
+      }
+    },
+    "/settings": {
+      "get": {
+        "summary": "Get campus system thresholds and settings",
+        "responses": {
+          "200": { "description": "Settings dictionary" }
+        }
+      },
+      "patch": {
+        "summary": "Update system settings (Admin only)",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Settings updated" }
+        }
+      }
+    },
+    "/ai/waste-detection": {
+      "post": {
+        "summary": "Detect waste type and bounding boxes from image",
+        "description": "Calls Person 3 AI microservice. Falls back to labelled mock in development.",
+        "responses": {
+          "201": { "description": "Detection result" }
+        }
+      }
+    },
+    "/ai/chat": {
+      "post": {
+        "summary": "Chat with AI Sustainability Advisor",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": { "type": "string", "example": "How can we reduce peak lab energy demand?" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "AI response" }
+        }
+      }
+    },
+    "/ai/recommendations": {
+      "post": {
+        "summary": "Get AI prescriptive sustainability recommendations",
+        "responses": {
+          "200": { "description": "Array of recommendations" }
+        }
+      }
+    }
+  }
+}
