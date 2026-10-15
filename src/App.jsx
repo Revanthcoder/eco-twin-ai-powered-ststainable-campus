@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from './components/common/Navbar';
 import Sidebar from './components/common/Sidebar';
 import EcoPulseDashboard from './components/dashboard/EcoPulseDashboard';
+import DigitalTwinView from './components/digital-twin/DigitalTwinView';
+import WhatIfScenarioView from './components/digital-twin/WhatIfScenarioView';
 import FeaturePlaceholder from './components/views/FeaturePlaceholder';
 import campusApi from './services/api';
 import { DEMO_CAMPUS_METRICS, DEMO_BUILDINGS, DEMO_ISSUES, DEMO_CONSUMPTION_HOURLY } from './services/demoData';
@@ -123,12 +125,13 @@ export default function App() {
           )}
 
           {activeTab === 'digital-twin' && (
-            <FeaturePlaceholder
-              title="Interactive Digital Twin (Campus 2D Map)"
-              description="A clickable, real-time spatial digital twin map of the 5 campus zones (Academic Block, Library, Cafeteria, Laboratory, Water Tank) with dynamic color-coded sustainability health markers (Green, Yellow, Red) and deep telemetry inspect panels."
-              icon={MapPin}
-              nextPhaseNumber="2"
-              onBackToDashboard={() => setActiveTab('dashboard')}
+            <DigitalTwinView
+              buildings={buildings}
+              selectedBuilding={selectedBuilding}
+              onSelectBuilding={setSelectedBuilding}
+              isDemoMode={isDemoMode}
+              backendStatus={backendStatus}
+              onUpdateAlertStatus={handleUpdateAlertStatus}
             />
           )}
 
@@ -153,12 +156,9 @@ export default function App() {
           )}
 
           {activeTab === 'simulator' && (
-            <FeaturePlaceholder
-              title="What-If Conservation Simulator"
-              description="Physics-based scenario modeling studio to adjust energy and water loads (LED retrofits, HVAC setback, low-flow fixtures) and compute projected cost savings and avoided CO2 emissions with transparent estimation labeling."
-              icon={Sliders}
-              nextPhaseNumber="5"
-              onBackToDashboard={() => setActiveTab('dashboard')}
+            <WhatIfScenarioView
+              buildings={buildings}
+              onNavigateToTab={setActiveTab}
             />
           )}
 

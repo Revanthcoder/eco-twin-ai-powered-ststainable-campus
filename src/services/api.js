@@ -1,10 +1,17 @@
 /**
  * EcoPulse AI — Centralized API Client Service
- * Connects to the FastAPI backend (http://127.0.0.1:8000).
+ * Connects to the Express API Gateway / Backend (http://127.0.0.1:8000).
  * Supports explicit switchable Demo Mode when backend is offline or demo is requested.
  */
 
-import { DEMO_BUILDINGS, DEMO_CAMPUS_METRICS, DEMO_ISSUES, DEMO_CONSUMPTION_HOURLY } from './demoData';
+import {
+  DEMO_BUILDINGS,
+  DEMO_CAMPUS_METRICS,
+  DEMO_ISSUES,
+  DEMO_CONSUMPTION_HOURLY,
+  DEMO_SENSORS,
+  DEMO_WASTE_BINS
+} from './demoData';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
@@ -36,7 +43,6 @@ class CampusApiService {
         signal: controller.signal,
         headers: { 'Accept': 'application/json' }
       }).catch(async () => {
-        // Fallback root health check
         return await fetch(`${this.baseUrl}/health`, { signal: controller.signal });
       });
 
@@ -50,7 +56,7 @@ class CampusApiService {
           online: true,
           status: data.status || 'healthy',
           database: data.database || 'connected',
-          service: data.service || 'EcoTwin AI',
+          service: data.service || 'EcoTwin Digital Twin API',
           timestamp: data.timestamp || new Date().toISOString()
         };
       }
@@ -70,20 +76,94 @@ class CampusApiService {
   }
 
   /**
-   * Fetch Buildings telemetry
+   * Fetch Digital Twin Overview
+   */
+  async getTwinOverview() {
+    if (!this.forceDemoMode) {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/twin/overview`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            return { data: json.data, isDemo: false, source: 'Digital Twin Backend' };
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    return {
+      data: {
+        campus: {
+          id: 'CAMPUS-01',
+          name: 'EcoPulse University Campus',
+          total_area_m2: 22850,
+          buildings_count: DEMO_BUILDINGS.length
+        },
+        energy: {
+          current_kw: 459.7,
+          total_kwh: 2785.0,
+          solar_kw: 90.0,
+          solar_offset_percent: 19.6,
+          carbon_emissions_kg_co2e: 1169.7,
+          energy_intensity_kwh_per_m2: 0.12,
+          unit_power: 'kW',
+          unit_energy: 'kWh'
+        },
+        water: {
+          current_flow_lpm: 219.3,
+          total_liters: 25900.0,
+          water_intensity_l_per_person: 24.1,
+          rainwater_reserve_liters: 45000,
+          unit_flow: 'L/min',
+          unit_volume: 'L'
+        },
+        waste: {
+          total_kg: 420.0,
+          diverted_kg: 345.0,
+          recycling_rate_percent: 82.1,
+          bins_tracked: 8
+        },
+        occupancy: {
+          current_count: 1075,
+          total_capacity: 2620,
+          occupancy_rate_percent: 41
+        },
+        sustainability_score: 82,
+        score_target: 90,
+        alerts: { total: 4, critical: 1, high: 1, warning: 1, medium: 1, low: 0 },
+        simulator: { isRunning: false, intervalSeconds: 10, tickCount: 0 },
+        last_updated: new Date().toISOString(),
+        data_source: 'Synthetic Demo Telemetry (Labeled)'
+      },
+      isDemo: true,
+      source: 'Synthetic Demo Telemetry (Labeled)'
+    };
+  }
+
+  /**
+   * Fetch Buildings telemetry (Phase 3 format with backward fallback)
    */
   async getBuildings() {
     if (!this.forceDemoMode) {
       try {
-        const res = await fetch(`${this.baseUrl}/api/buildings`);
+        const res = await fetch(`${this.baseUrl}/api/twin/buildings`);
         if (res.ok) {
-          const liveData = await res.json();
-          if (Array.isArray(liveData) && liveData.length > 0) {
-            return { data: liveData, isDemo: false, source: 'FastAPI Backend' };
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+            return { data: json.data, isDemo: false, source: 'Express Digital Twin Backend' };
           }
         }
       } catch {
-        // Fall through to labeled fallback
+        // Try legacy route
+        try {
+          const legRes = await fetch(`${this.baseUrl}/api/buildings`);
+          if (legRes.ok) {
+            const data = await legRes.json();
+            return { data, isDemo: false, source: 'Legacy API' };
+          }
+        } catch {}
       }
     }
 
@@ -95,7 +175,294 @@ class CampusApiService {
   }
 
   /**
-   * Fetch Campus Aggregate Metrics
+   * Fetch Single Building Details (with zones, sensors, waste bins)
+   */
+  async getBuildingDetail(buildingId) {
+    if (!this.forceDemoMode) {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/twin/buildings/${buildingId}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            return { data: json.data, isDemo: false };
+          }
+        }
+      } catch {}
+    }
+
+    // Client fallback
+    const b = DEMO_BUILDINGS.find(item => item.id === Number(buildingId)) || DEMO_BUILDINGS[0];
+    const buildingSensors = DEMO_SENSORS.filter(s => s.building_id === b.id);
+    const buildingBins = DEMO_WASTE_BINS.filter(bin => bin.building_id === b.id);
+    const buildingAlerts = DEMO_ISSUES.filter(a => a.building_id === b.id);
+
+    return {
+      data: {
+        ...b,
+        zones: [
+          { id: b.id * 100 + 1, name: 'Ground Floor Atrium', floor: 0, zone_type: 'commons', area_m2: b.area_m2 * 0.35 },
+          { id: b.id * 100 + 2, name: 'Main Working Zone 1F', floor: 1, zone_type: 'workspace', area_m2: b.area_m2 * 0.45 },
+          { id: b.id * 100 + 3, name: 'Utility & Services 2F', floor: 2, zone_type: 'utility', area_m2: b.area_m2 * 0.20 }
+        ],
+        sensors: buildingSensors,
+        waste_bins: buildingBins,
+        alerts: buildingAlerts
+      },
+      isDemo: true
+    };
+  }
+
+  /**
+   * Fetch Building Historical Telemetry Readings
+   */
+  async getBuildingReadings(buildingId, metric = null, limit = 40) {
+    if (!this.forceDemoMode) {
+      try {
+        const url = new URL(`${this.baseUrl}/api/twin/buildings/${buildingId}/readings`);
+        if (metric) url.searchParams.set('metric', metric);
+        url.searchParams.set('limit', limit);
+
+        const res = await fetch(url);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            return { data: json.data, isDemo: false };
+          }
+        }
+      } catch {}
+    }
+
+    // Fallback generate simulated readings
+    const hours = 12;
+    const mockData = [];
+    for (let i = hours; i >= 0; i--) {
+      const timeStr = `${String(12 - i).padStart(2, '0')}:00`;
+      mockData.push({
+        measured_at: timeStr,
+        value: Math.round(50 + Math.sin(i) * 25 + Math.random() * 5),
+        metric: metric || 'energy',
+        unit: metric === 'water_flow' ? 'L/min' : 'kW'
+      });
+    }
+    return { data: mockData, isDemo: true };
+  }
+
+  /**
+   * Fetch All Campus Sensors
+   */
+  async getSensors() {
+    if (!this.forceDemoMode) {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/twin/sensors`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            return { data: json.data, isDemo: false };
+          }
+        }
+      } catch {}
+    }
+
+    return { data: DEMO_SENSORS, isDemo: true };
+  }
+
+  /**
+   * Ingest a physical/simulated sensor reading
+   */
+  async ingestSensorReading(sensorId, payload) {
+    if (!this.forceDemoMode) {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/twin/sensors/${sensorId}/readings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch {}
+    }
+
+    return { success: true, message: 'Reading saved (Demo fallback mode)', data: payload };
+  }
+
+  /**
+   * Fetch Simulator Status
+   */
+  async getSimulatorStatus() {
+    if (!this.forceDemoMode) {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/twin/simulator/status`);
+        if (res.ok) {
+          const json = await res.json();
+          return json.data;
+        }
+      } catch {}
+    }
+
+    return { isRunning: false, intervalSeconds: 10, tickCount: 0 };
+  }
+
+  /**
+   * Start Simulator
+   */
+  async startSimulator(intervalSeconds = 10) {
+    if (!this.forceDemoMode) {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/twin/simulator/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ interval_seconds: intervalSeconds })
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch {}
+    }
+    return { success: true, data: { isRunning: true, intervalSeconds } };
+  }
+
+  /**
+   * Stop Simulator
+   */
+  async stopSimulator() {
+    if (!this.forceDemoMode) {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/twin/simulator/stop`, {
+          method: 'POST'
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch {}
+    }
+    return { success: true, data: { isRunning: false } };
+  }
+
+  /**
+   * Manual Single Simulation Tick
+   */
+  async stepSimulator() {
+    if (!this.forceDemoMode) {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/twin/simulator/step`, {
+          method: 'POST'
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch {}
+    }
+    return { success: true, data: { tickCount: 1 } };
+  }
+
+  /**
+   * Reset Demo Baseline Data
+   */
+  async resetSimulatorData() {
+    if (!this.forceDemoMode) {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/twin/simulator/reset`, {
+          method: 'POST'
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch {}
+    }
+    return { success: true, message: 'Reset demo baseline' };
+  }
+
+  /**
+   * Inject Test Anomaly
+   */
+  async injectAnomaly(buildingId, anomalyType) {
+    if (!this.forceDemoMode) {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/twin/simulator/inject-anomaly`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ building_id: buildingId, anomaly_type: anomalyType })
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch {}
+    }
+    return { success: true, message: `Injected ${anomalyType} for building ${buildingId}` };
+  }
+
+  /**
+   * Run What-If Resource Scenario Simulation
+   */
+  async runWhatIfSimulation(payload) {
+    if (!this.forceDemoMode) {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/twin/scenarios/simulate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            return json.data;
+          }
+        }
+      } catch {}
+    }
+
+    // Pure physics client calculation fallback
+    const days = payload.days || 30;
+    const reductionPercent = payload.reduction_percent || 20;
+
+    if (payload.metric_type === 'water') {
+      const baselineTotal = (payload.baseline_daily_liters || 1200) * days;
+      const projectedTotal = Math.round(baselineTotal * (1 - reductionPercent / 100));
+      const difference = baselineTotal - projectedTotal;
+      return {
+        building_id: payload.building_id || 1,
+        building_name: 'Campus Building',
+        scenario_name: payload.scenario_name || 'Water Conservation Retrofit',
+        metric_type: 'water',
+        baseline_value: baselineTotal,
+        projected_value: projectedTotal,
+        difference,
+        percent_saved: reductionPercent,
+        cost_saved_usd: Math.round((difference / 1000) * 2.75 * 100) / 100,
+        co2_avoided_kg: Math.round(difference * 0.0015 * 0.42 * 10) / 10,
+        unit: 'Liters',
+        assumptions: `Modeled across a ${days}-day duration at $2.75/kL utility tariff rate.`,
+        uncertainty: '±8% based on fixture usage fluctuations.',
+        data_classification: 'ESTIMATE - What-if simulation based on engineering models',
+        created_at: new Date().toISOString()
+      };
+    } else {
+      const baselineTotal = (payload.baseline_daily_kwh || 450) * days;
+      const projectedTotal = Math.round(baselineTotal * (1 - reductionPercent / 100));
+      const difference = baselineTotal - projectedTotal;
+      return {
+        building_id: payload.building_id || 1,
+        building_name: 'Campus Building',
+        scenario_name: payload.scenario_name || 'Energy Efficiency Initiative',
+        metric_type: 'energy',
+        baseline_value: baselineTotal,
+        projected_value: projectedTotal,
+        difference,
+        percent_saved: reductionPercent,
+        cost_saved_usd: Math.round(difference * 0.14 * 100) / 100,
+        co2_avoided_kg: Math.round(difference * 0.42 * 10) / 10,
+        unit: 'kWh',
+        assumptions: `Modeled across ${days} days with regional emissions factor of 0.42 kg CO2e/kWh at $0.14/kWh tariff.`,
+        uncertainty: '±5% based on seasonal weather swings.',
+        data_classification: 'ESTIMATE - What-if simulation based on engineering models',
+        created_at: new Date().toISOString()
+      };
+    }
+  }
+
+  /**
+   * Fetch Campus Aggregate Metrics (Phase 1 compatibility)
    */
   async getCampusMetrics() {
     if (!this.forceDemoMode) {
@@ -103,11 +470,9 @@ class CampusApiService {
         const res = await fetch(`${this.baseUrl}/api/metrics/summary`);
         if (res.ok) {
           const liveData = await res.json();
-          return { data: liveData, isDemo: false, source: 'FastAPI Telemetry' };
+          return { data: liveData, isDemo: false, source: 'Express Telemetry' };
         }
-      } catch {
-        // Fall through to labeled demo
-      }
+      } catch {}
     }
 
     return {
@@ -118,20 +483,26 @@ class CampusApiService {
   }
 
   /**
-   * Fetch Campus Issues / Smart Alerts
+   * Fetch Campus Issues / Smart Alerts (Phase 1 compatibility)
    */
   async getIssues() {
     if (!this.forceDemoMode) {
       try {
-        const res = await fetch(`${this.baseUrl}/api/issues`);
+        const res = await fetch(`${this.baseUrl}/api/twin/alerts`);
         if (res.ok) {
           const liveData = await res.json();
-          if (Array.isArray(liveData) && liveData.length > 0) {
-            return { data: liveData, isDemo: false, source: 'FastAPI SQLite Database' };
+          if (liveData.success && Array.isArray(liveData.data)) {
+            return { data: liveData.data, isDemo: false, source: 'SQLite Database' };
           }
         }
       } catch {
-        // Fall through
+        try {
+          const legacyRes = await fetch(`${this.baseUrl}/api/issues`);
+          if (legacyRes.ok) {
+            const data = await legacyRes.json();
+            return { data, isDemo: false, source: 'Legacy Issues' };
+          }
+        } catch {}
       }
     }
 
@@ -148,7 +519,7 @@ class CampusApiService {
   async updateIssueStatus(issueId, newStatus) {
     if (!this.forceDemoMode) {
       try {
-        const res = await fetch(`${this.baseUrl}/api/issues/${issueId}`, {
+        const res = await fetch(`${this.baseUrl}/api/twin/alerts/${issueId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus })
@@ -157,7 +528,16 @@ class CampusApiService {
           return await res.json();
         }
       } catch {
-        // Client-side state fallback
+        try {
+          const legRes = await fetch(`${this.baseUrl}/api/issues/${issueId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+          });
+          if (legRes.ok) {
+            return await legRes.json();
+          }
+        } catch {}
       }
     }
 
@@ -176,71 +556,10 @@ class CampusApiService {
   }
 
   /**
-   * Run What-If Resource Simulation
+   * Run What-If Resource Simulation (Phase 1 legacy method)
    */
   async runSimulation(payload) {
-    if (!this.forceDemoMode) {
-      try {
-        const endpoint = payload.type === 'water' ? '/api/simulations/water' : '/api/simulations/energy';
-        const res = await fetch(`${this.baseUrl}${endpoint}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-          return await res.json();
-        }
-      } catch {
-        // Client-side physics-based engineering calculation fallback
-      }
-    }
-
-    // Engineering Model Calculation (Clearly Labeled as Simulation)
-    const days = payload.days || 30;
-    if (payload.type === 'water') {
-      const baselineTotal = (payload.baselineDailyLiters || 1200) * days;
-      const projectedTotal = (payload.proposedDailyLiters || 850) * days;
-      const difference = baselineTotal - projectedTotal;
-      return {
-        scenario_name: payload.scenarioName || 'Water Efficiency Retrofit',
-        simulation_type: 'water',
-        baseline_result: baselineTotal,
-        scenario_result: projectedTotal,
-        estimated_difference: difference,
-        percent_saved: Math.round((difference / baselineTotal) * 100 * 10) / 10,
-        unit: 'Liters',
-        assumptions: `Based on ${days}-day operating cycle with daily flow measurements.`,
-        data_classification: 'ESTIMATE - What-if simulation based on engineering models, not verified measured savings',
-        timestamp: new Date().toISOString()
-      };
-    } else {
-      // Energy
-      const count = payload.equipmentCount || 10;
-      const hours = payload.operatingHoursPerDay || 12;
-      const baselineWatts = payload.baselinePowerWatts || 100;
-      const proposedWatts = payload.proposedPowerWatts || 40;
-      
-      const baselineKWh = ((baselineWatts * count * hours * days) / 1000);
-      const proposedKWh = ((proposedWatts * count * hours * days) / 1000);
-      const diffKWh = baselineKWh - proposedKWh;
-      const co2KgAvoided = diffKWh * 0.42; // standard 0.42 kg CO2e / kWh grid factor
-      const costSavedUSD = diffKWh * 0.14; // $0.14 / kWh institutional tariff
-
-      return {
-        scenario_name: payload.scenarioName || 'LED Lighting Retrofit',
-        simulation_type: 'energy',
-        baseline_result: Math.round(baselineKWh * 10) / 10,
-        scenario_result: Math.round(proposedKWh * 10) / 10,
-        estimated_difference: Math.round(diffKWh * 10) / 10,
-        percent_saved: Math.round((diffKWh / baselineKWh) * 100 * 10) / 10,
-        co2_avoided_kg: Math.round(co2KgAvoided * 10) / 10,
-        cost_saved_usd: Math.round(costSavedUSD * 100) / 100,
-        unit: 'kWh',
-        assumptions: `Calculation uses ${hours} operating hrs/day over ${days} days across ${count} units at 0.42 kg CO2/kWh.`,
-        data_classification: 'ESTIMATE - What-if simulation based on engineering models, not verified measured savings',
-        timestamp: new Date().toISOString()
-      };
-    }
+    return this.runWhatIfSimulation(payload);
   }
 
   /**
@@ -257,14 +576,11 @@ class CampusApiService {
         });
         if (res.ok) {
           const liveVision = await res.json();
-          return { ...liveVision, isLiveModel: true };
+          return { ...liveVision, isLiveModel: liveVision.isLiveModel || false };
         }
-      } catch {
-        // Backend vision endpoint not available
-      }
+      } catch {}
     }
 
-    // Transparent client-side heuristic inspection (Never presents synthetic as real AI detection)
     return {
       fileName: file.name,
       fileSizeBytes: file.size,
@@ -289,12 +605,11 @@ class CampusApiService {
    * Eco AI Assistant query
    */
   async askEcoAssistant(prompt) {
-    // Evidence-based responses citing campus telemetry
     const p = prompt.toLowerCase();
 
     if (p.includes('highest') || p.includes('most energy') || p.includes('power')) {
       return {
-        answer: "Based on real-time campus telemetry, the **Laboratory (Zone D)** has the highest energy consumption at **1,350.0 kWh** (approx 48% of total campus load), driven primarily by 24/7 cleanroom air ventilation and high-performance computing clusters.",
+        answer: "Based on real-time campus telemetry, the **Science & Tech Laboratory (Zone D)** has the highest energy consumption at **1,350.0 kWh** (approx 48% of total campus load), driven primarily by 24/7 cleanroom air ventilation and high-performance computing clusters.",
         citations: ["Laboratory Reading: 1,350 kWh", "Academic Block: 480 kWh", "Cafeteria: 650 kWh"],
         confidence: "High (IoT meter confidence 99.4%)",
         uncertaintyNotice: "Readings reflect the past 24-hour cycle. Seasonal HVAC peak adjustments may shift total share by ±5%."
@@ -303,7 +618,7 @@ class CampusApiService {
 
     if (p.includes('water') || p.includes('leak')) {
       return {
-        answer: "Campus water consumption is currently elevated at **25,900 Liters** (+12.3% above baseline). The primary driver is an active high-severity leak in the **Cafeteria** commercial dishwasher inlet valve, causing an estimated loss of ~140 Liters/hour.",
+        answer: "Campus water consumption is currently elevated at **25,900 Liters** (+12.3% above baseline). The primary driver is an active high-severity leak in the **Campus Cafeteria** commercial dishwasher inlet valve, causing an estimated loss of ~140 Liters/hour.",
         citations: ["Active Alert #102: Cafeteria Valve Leak", "Water Tank Reservoir: 18,500 L current draw"],
         confidence: "High (Acoustic and pressure sensor confirmed)",
         uncertaintyNotice: "Loss rate calculated from differential meter flow during non-operating hours (02:00 - 05:00)."
@@ -320,8 +635,8 @@ class CampusApiService {
     }
 
     return {
-      answer: "EcoPulse AI monitors 5 key facilities across campus (Academic Block, Library, Cafeteria, Laboratory, and Water Tank). You can explore live consumption, simulate LED retrofits in the What-If Simulator, or review active alerts for immediate maintenance triage.",
-      citations: ["Campus Digital Twin Map", "FastAPI Telemetry Hub"],
+      answer: "EcoPulse AI monitors 5 key facilities across campus (Academic Block, Central Library, Campus Cafeteria, Science & Tech Laboratory, and Water Tank & Pump House). You can explore live consumption in the interactive Digital Twin map, simulate conservation measures in the What-If Simulator, or review active alerts for immediate maintenance triage.",
+      citations: ["Campus Digital Twin Map", "Express Telemetry Hub"],
       confidence: "High",
       uncertaintyNotice: "Telemetry data is refreshed continually from campus edge sensors."
     };

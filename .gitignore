@@ -13,14 +13,27 @@ build/
 *.local
 vite.config.*.timestamp-*
 
+<<<<<<< HEAD
 # Environment variables
+=======
+# ──────────── Environment Variables & Databases ────────────
+# Never commit secrets or API keys to version control
+>>>>>>> cb8121f (Implement Phase 3 Digital Twin campus integration)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 .env.*.local
+<<<<<<< HEAD
 backend/.env
+=======
+*.db
+*.sqlite
+server/data/*.db
+__pycache__/
+*.pyc
+>>>>>>> cb8121f (Implement Phase 3 Digital Twin campus integration)
 
 # Editor / IDE
 .vscode/
