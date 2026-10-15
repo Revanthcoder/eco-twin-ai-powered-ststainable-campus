@@ -1,32 +1,41 @@
-# ─────────────────────────────────────────────
-# EcoPulse AI — Campus Sustainability Intelligence
-# .gitignore — React + Vite + Node.js Frontend
-# ─────────────────────────────────────────────
-
-# ──────────── Dependencies ────────────
+# Dependencies
 node_modules/
+backend/node_modules/
 .npm
 
-# ──────────── Build Output ────────────
+# Build output
 dist/
 dist-ssr/
 build/
 
-# ──────────── Vite Cache & Temp ────────────
+# Vite cache and temporary files
 .vite/
 *.local
 vite.config.*.timestamp-*
 
-# ──────────── Environment Variables ────────────
+<<<<<<< HEAD
+# Environment variables
+=======
+# ──────────── Environment Variables & Databases ────────────
 # Never commit secrets or API keys to version control
+>>>>>>> cb8121f (Implement Phase 3 Digital Twin campus integration)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 .env.*.local
+<<<<<<< HEAD
+backend/.env
+=======
+*.db
+*.sqlite
+server/data/*.db
+__pycache__/
+*.pyc
+>>>>>>> cb8121f (Implement Phase 3 Digital Twin campus integration)
 
-# ──────────── Editor / IDE ────────────
+# Editor / IDE
 .vscode/
 .idea/
 *.suo
@@ -37,14 +46,14 @@ vite.config.*.timestamp-*
 *.swp
 *~
 
-# ──────────── OS Files ────────────
+# OS files
 .DS_Store
 Thumbs.db
 desktop.ini
 $RECYCLE.BIN/
 ehthumbs.db
 
-# ──────────── Logs ────────────
+# Logs
 logs/
 *.log
 npm-debug.log*
@@ -53,13 +62,20 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# ──────────── Testing ────────────
+# Testing
 coverage/
 .nyc_output/
 playwright-report/
 test-results/
 
-# ──────────── Misc ────────────
+# Backend local data and uploads
+backend/dev.db
+backend/dev.db-journal
+backend/test.db
+backend/test.db-journal
+backend/uploads/
+
+# Misc
 *.tgz
 *.tar.gz
 *.zip

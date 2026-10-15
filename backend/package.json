@@ -1,0 +1,45 @@
+{
+  "name": "ai-sustainable-campus-backend",
+  "version": "1.0.0",
+  "description": "Backend API for AI-Powered Sustainable Campus",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma db push",
+    "seed": "node prisma/seed.js",
+    "test": "vitest run --reporter=verbose"
+  },
+  "keywords": [
+    "sustainability",
+    "campus",
+    "smart-campus",
+    "iot",
+    "express",
+    "prisma",
+    "sqlite"
+  ],
+  "author": "Campus Sustainability Backend Team",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^6.4.1",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "prisma": "^6.4.1",
+    "supertest": "^7.0.0",
+    "vitest": "^3.0.7"
+  }
+}

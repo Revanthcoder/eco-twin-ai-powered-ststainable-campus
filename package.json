@@ -1,17 +1,40 @@
 {
   "name": "ecopulse-campus-ai",
-  "private": true,
   "version": "1.0.0",
+  "description": "AI-Powered Sustainable Campus Hackathon Solution",
+  "private": true,
   "type": "module",
   "scripts": {
+<<<<<<< HEAD
+    "start": "npm start --prefix backend",
+    "dev": "npm run dev --prefix backend",
+    "test": "npm test --prefix backend",
+    "seed": "npm run seed --prefix backend",
+    "prisma:migrate": "npm run prisma:migrate --prefix backend",
+    "prisma:generate": "npm run prisma:generate --prefix backend",
+    "frontend:dev": "vite",
+    "frontend:build": "vite build",
+    "frontend:preview": "vite preview"
+=======
     "dev": "vite",
+    "dev:frontend": "vite",
+    "dev:backend": "node server/index.js",
+    "server": "node server/index.js",
+    "seed": "node -e \"import('./server/db/database.js').then(d=>d.initSchema()).then(()=>import('./server/db/seedData.js')).then(s=>s.seedDatabase(true)).then(()=>process.exit(0));\"",
+    "test": "node --test server/tests/api.test.js",
+    "ai-service": "python ai-service/main.py",
     "build": "vite build",
     "preview": "vite preview"
+>>>>>>> cb8121f (Implement Phase 3 Digital Twin campus integration)
   },
   "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
     "lucide-react": "^1.16.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "sqlite3": "^6.0.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",
