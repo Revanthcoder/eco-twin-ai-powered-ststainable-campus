@@ -207,13 +207,20 @@ router.post('/simulations/energy', async (req, res) => {
  */
 router.post('/vision/analyze', async (req, res) => {
   try {
-    // Attempt to contact Python AI Service
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2000);
+    const timeout = setTimeout(() => controller.abort(), 4000);
 
+    const headers = {};
+    if (req.headers['content-type']) {
+      headers['content-type'] = req.headers['content-type'];
+    }
+
+    const isMultipart = req.headers['content-type']?.includes('multipart');
     const aiRes = await fetch(`${AI_SERVICE_URL}/predict`, {
       method: 'POST',
-      body: req.body,
+      headers,
+      body: isMultipart ? req : JSON.stringify(req.body),
+      duplex: 'half',
       signal: controller.signal
     }).catch(() => null);
 
@@ -243,6 +250,77 @@ router.post('/vision/analyze', async (req, res) => {
       }
     ]
   });
+});
+
+/**
+ * POST /api/ai/chat
+ * Proxies to Python AI Service sustainability advisor
+ */
+router.post(['/ai/chat', '/api/ai/chat'], async (req, res) => {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const aiRes = await fetch(`${AI_SERVICE_URL}/chat/sustainability`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body),
+      signal: controller.signal
+    }).catch(() => null);
+
+    clearTimeout(timeout);
+
+    if (aiRes && aiRes.ok) {
+      const data = await aiRes.json();
+      return res.json({ success: true, data });
+    }
+  } catch (err) {
+    console.warn('[Proxy Error] AI chat service offline:', err.message);
+  }
+
+  res.json({
+    success: true,
+    data: {
+      reply: "EcoNexus AI monitors live campus telemetry across Academic Block, Library, Cafeteria, and Lab.",
+      citations: ["Campus Offline Baseline"],
+      confidence: "Medium",
+      isMockFallback: true
+    }
+  });
+});
+
+/**
+ * POST /api/ai/intelligence
+ * Proxies to Python AI Service end-to-end EcoImpact Intelligence Engine
+ */
+router.post(['/ai/intelligence', '/api/ai/intelligence'], async (req, res) => {
+  try {
+    const isMultipart = req.headers['content-type']?.includes('multipart');
+    const headers = {};
+    if (req.headers['content-type']) headers['content-type'] = req.headers['content-type'];
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
+    const aiRes = await fetch(`${AI_SERVICE_URL}/api/intelligence/analyze`, {
+      method: 'POST',
+      headers,
+      body: isMultipart ? req : JSON.stringify(req.body),
+      duplex: 'half',
+      signal: controller.signal
+    }).catch(() => null);
+
+    clearTimeout(timeout);
+
+    if (aiRes && aiRes.ok) {
+      const data = await aiRes.json();
+      return res.json({ success: true, data });
+    }
+  } catch (err) {
+    console.warn('[Proxy Error] AI Intelligence engine offline:', err.message);
+  }
+
+  res.status(503).json({ success: false, error: 'AI Intelligence engine offline at port 8001' });
 });
 
 export default router;

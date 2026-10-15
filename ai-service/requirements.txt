@@ -1,7 +1,12 @@
-# EcoPulse Campus AI Service Requirements
-# Note: ai-service/main.py runs out-of-the-box on standard Python 3.8+ library (http.server).
-# Optional enhanced packages for advanced training:
-fastapi>=0.100.0
-uvicorn>=0.22.0
-numpy>=1.24.0
-scikit-learn>=1.3.0
+# EcoNexus AI Sustainable Campus Microservice Requirements
+# Production-ready AI, Computer Vision, Anomaly Detection & Grounded GenAI
+fastapi>=0.110.0
+uvicorn>=0.28.0
+pydantic>=2.6.0
+python-multipart>=0.0.9
+pillow>=10.2.0
+numpy>=1.26.0
+httpx>=0.27.0
+python-dotenv>=1.0.1
+onnxruntime>=1.17.0
+pytest>=8.0.0
