@@ -8,7 +8,8 @@ import {
   Bot,
   TrendingUp,
   Leaf,
-  ShieldCheck
+  ShieldCheck,
+  Users
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, onSelectTab, alertsCount = 0 }) {
@@ -24,6 +25,18 @@ export default function Sidebar({ activeTab, onSelectTab, alertsCount = 0 }) {
       label: 'Digital Twin (Map)',
       icon: MapPin,
       badge: '5 Zones'
+    },
+    {
+      id: 'agentic-hub',
+      label: 'Agentic AI Hub',
+      icon: ShieldCheck,
+      badge: '4 Active'
+    },
+    {
+      id: 'occupancy',
+      label: 'Occupancy Heatmap',
+      icon: Users,
+      badge: 'Live'
     },
     {
       id: 'vision-scanner',

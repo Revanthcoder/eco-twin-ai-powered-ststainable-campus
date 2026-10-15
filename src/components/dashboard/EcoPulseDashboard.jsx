@@ -5,6 +5,7 @@ import MetricsGrid from './MetricsGrid';
 import ConsumptionTrendChart from './ConsumptionTrendChart';
 import CampusStatusSummary from './CampusStatusSummary';
 import RecentAlertsList from './RecentAlertsList';
+import EnergyLeaderboard from './EnergyLeaderboard';
 
 export default function EcoPulseDashboard({
   metrics,
@@ -99,6 +100,9 @@ export default function EcoPulseDashboard({
           onOpenMap={() => onNavigateToTab('digital-twin')}
         />
       </div>
+
+      {/* Resource Leaderboard */}
+      <EnergyLeaderboard buildings={buildings} onNavigateToTab={onNavigateToTab} />
 
       {/* Bottom Section: Active Alerts Ticker */}
       <div className="dashboard-bottom-section">

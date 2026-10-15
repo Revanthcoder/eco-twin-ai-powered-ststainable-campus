@@ -301,12 +301,39 @@ class CampusApiService {
       };
     }
 
+    if (p.includes('cafeteria') && (p.includes('water') || p.includes('reduce') || p.includes('save'))) {
+      return {
+        answer: "To reduce cafeteria water usage (currently **4,800 L/day**), the AI recommends: \n1. **Urgent**: Replace leaking dishwasher inlet silicone valve seal (saves ~140 L/hour / $18.50/day).\n2. **Retrofit**: Install 1.5 GPM low-flow sink aerators across kitchen pre-rinse stations (estimated 33% water reduction).\n3. **Smart Scheduling**: Consolidate dishwashing cycles to full batches during off-peak hours.",
+        citations: ["Active Alert #102: Dishwasher Inlet Leak", "Cafeteria Smart Meter: 4,800 L/day", "Water Conservation Simulator"],
+        confidence: "Very High (Physics-based flow modeling)",
+        uncertaintyNotice: "Savings projections based on standard commercial kitchen retrofit metrics."
+      };
+    }
+
+    if (p.includes('recycling') || p.includes('waste') || p.includes('divert')) {
+      return {
+        answer: "Our current campus recycling rate is **82.1%**, approaching our **85.0% target** for Q4 (+3.5% vs last month). Out of **420 kg total waste**, **345 kg** was diverted from landfills (**190 kg** composted at the campus organic garden and **155 kg** dry recyclables sorted).",
+        citations: ["Campus Waste Audit Stream: 420 kg total", "Zone C Compost Digester: 190 kg", "Target: 85% ISO 50001"],
+        confidence: "High (Weigh-scale IoT sensors at waste bays)",
+        uncertaintyNotice: "Data updated daily at 06:00 and 18:00 waste collection cycles."
+      };
+    }
+
     if (p.includes('water') || p.includes('leak')) {
       return {
         answer: "Campus water consumption is currently elevated at **25,900 Liters** (+12.3% above baseline). The primary driver is an active high-severity leak in the **Cafeteria** commercial dishwasher inlet valve, causing an estimated loss of ~140 Liters/hour.",
         citations: ["Active Alert #102: Cafeteria Valve Leak", "Water Tank Reservoir: 18,500 L current draw"],
         confidence: "High (Acoustic and pressure sensor confirmed)",
         uncertaintyNotice: "Loss rate calculated from differential meter flow during non-operating hours (02:00 - 05:00)."
+      };
+    }
+
+    if (p.includes('solar') || p.includes('renewable') || p.includes('generation')) {
+      return {
+        answer: "Campus rooftop solar arrays generated **620 kWh this month** (offsetting 24.8% of daytime peak electricity demand). The Academic Block array leads with 165 kWh, followed by the Laboratory array with 110 kWh and Library with 80 kWh.",
+        citations: ["Solar Inverter Telemetry Gateway", "Peak Solar Offset: 24.8%", "Carbon Avoided: 260.4 kg CO2e"],
+        confidence: "High (Direct inverter API feed)",
+        uncertaintyNotice: "Solar generation is weather-dependent; current forecast predicts 92% clear skies for next 48 hours."
       };
     }
 
@@ -319,9 +346,18 @@ class CampusApiService {
       };
     }
 
+    if (p.includes('alert') || p.includes('issue') || p.includes('critical')) {
+      return {
+        answer: "There are currently **4 active maintenance issues**: \n- **Critical**: Laboratory Cleanroom chiller compressor continuous max load.\n- **High**: Cafeteria commercial dishwasher valve water leak (~140 L/hr).\n- **Medium**: Water Tank float sensor calibration jitter.\n- **Low**: Academic Block Hallway 3A automated motion sensor stuck on.",
+        citations: ["Smart Alerts Triage Queue", "HVAC Edge Gateway", "Building Automation System"],
+        confidence: "Verified (BACnet edge diagnostics)",
+        uncertaintyNotice: "Triage priorities are dynamically calculated based on cost per hour of energy/water waste."
+      };
+    }
+
     return {
-      answer: "EcoPulse AI monitors 5 key facilities across campus (Academic Block, Library, Cafeteria, Laboratory, and Water Tank). You can explore live consumption, simulate LED retrofits in the What-If Simulator, or review active alerts for immediate maintenance triage.",
-      citations: ["Campus Digital Twin Map", "FastAPI Telemetry Hub"],
+      answer: "EcoPulse AI monitors 5 key facilities across campus (**Academic Block**, **Library**, **Cafeteria**, **Laboratory**, and **Water Tank**). You can explore live consumption, inspect occupancy in the **Occupancy Heatmap**, simulate interventions in the **What-If Simulator**, or triage issues in **Smart Alerts**.",
+      citations: ["Campus Digital Twin Map", "FastAPI Telemetry Hub", "EcoPulse Campus Knowledge Base"],
       confidence: "High",
       uncertaintyNotice: "Telemetry data is refreshed continually from campus edge sensors."
     };
