@@ -208,7 +208,7 @@ router.post('/simulations/energy', async (req, res) => {
 router.post('/vision/analyze', async (req, res) => {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     const headers = {};
     if (req.headers['content-type']) {
@@ -216,13 +216,27 @@ router.post('/vision/analyze', async (req, res) => {
     }
 
     const isMultipart = req.headers['content-type']?.includes('multipart');
+    let requestBody;
+
+    if (isMultipart) {
+      const chunks = [];
+      for await (const chunk of req) {
+        chunks.push(chunk);
+      }
+      requestBody = Buffer.concat(chunks);
+    } else {
+      requestBody = JSON.stringify(req.body);
+    }
+
     const aiRes = await fetch(`${AI_SERVICE_URL}/predict`, {
       method: 'POST',
       headers,
-      body: isMultipart ? req : JSON.stringify(req.body),
-      duplex: 'half',
+      body: requestBody,
       signal: controller.signal
-    }).catch(() => null);
+    }).catch((err) => {
+      console.warn(`[Vision Proxy] Cannot connect to AI service at ${AI_SERVICE_URL}:`, err.message);
+      return null;
+    });
 
     clearTimeout(timeout);
 
@@ -230,25 +244,28 @@ router.post('/vision/analyze', async (req, res) => {
       const data = await aiRes.json();
       return res.json({ ...data, isLiveModel: true });
     }
-  } catch {
-    // AI service offline
+
+    if (aiRes) {
+      const errBody = await aiRes.json().catch(() => ({ detail: aiRes.statusText }));
+      return res.status(aiRes.status).json({
+        analysisStatus: 'rejected',
+        isLiveModel: false,
+        error: 'Vision Inference Failed',
+        message: errBody.detail || errBody.message || 'Vision model rejected the uploaded image.',
+        detections: []
+      });
+    }
+  } catch (err) {
+    console.warn('[Vision Proxy Error]', err.message);
   }
 
-  // Labeled fallback
-  res.json({
-    analysisStatus: 'simulated_heuristic',
+  // Explicit offline error - NO silent hardcoded demo fallback
+  return res.status(503).json({
+    analysisStatus: 'offline',
     isLiveModel: false,
-    disclaimer: 'HEURISTIC PREVIEW: Backend vision neural network not active at port 8001. This is a deterministic rule-based demonstration.',
-    detections: [
-      {
-        class: 'Water Dripping / Pipe Leak',
-        confidence: 0.94,
-        severity: 'high',
-        suggestedLocation: 'Cafeteria - Utility Pipe Wall',
-        recommendation: 'Potential valve gasket degradation detected. Recommend maintenance dispatch.',
-        boundingBox: { x: 32, y: 48, width: 28, height: 35 }
-      }
-    ]
+    error: 'AI Vision Service Unavailable',
+    message: `Unable to connect to the EcoNexus AI vision service at ${AI_SERVICE_URL}. Please ensure the Python service is running on port 8001 ('npm run ai-service').`,
+    detections: []
   });
 });
 

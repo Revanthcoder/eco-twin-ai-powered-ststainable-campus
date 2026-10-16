@@ -76,6 +76,44 @@ class CampusApiService {
   }
 
   /**
+   * Health Check for Python AI Microservice (port 8001)
+   */
+  async checkAiServiceHealth() {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+      const res = await fetch('http://127.0.0.1:8001/health', {
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      }).catch(async () => {
+        return await fetch(`${this.baseUrl}/api/health`, { signal: controller.signal });
+      });
+
+      clearTimeout(timeoutId);
+
+      if (res && res.ok) {
+        const data = await res.json();
+        return {
+          online: true,
+          service: data.service || 'EcoNexus AI Intelligence Service',
+          version: data.version || '2.4.0',
+          model: data.model_version ? `MobileNetV2-ONNX (v${data.model_version})` : 'MobileNetV2-ONNX'
+        };
+      }
+    } catch {
+      // AI service offline
+    }
+
+    return {
+      online: false,
+      service: 'AI Vision Microservice',
+      version: null,
+      model: null
+    };
+  }
+
+  /**
    * Fetch Digital Twin Overview
    */
   async getTwinOverview() {
@@ -565,40 +603,89 @@ class CampusApiService {
   /**
    * AI Vision Scanner Upload & Classification
    */
-  async analyzeVisionImage(file) {
-    if (!this.forceDemoMode) {
+  /**
+   * AI Vision Scanner Upload & Classification
+   * Sends actual image bytes and user location to backend / AI service.
+   */
+  async analyzeVisionImage(file, location = null, confidenceThreshold = null) {
+    const formData = new FormData();
+    formData.append('image', file);
+    if (location && location !== 'Location not provided') {
+      formData.append('location', location);
+      formData.append('building_id', location);
+    }
+    if (confidenceThreshold) {
+      formData.append('confidence_threshold', confidenceThreshold);
+    }
+
+    // Try Express backend gateway first
+    try {
+      const res = await fetch(`${this.baseUrl}/api/vision/analyze`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        return {
+          ...data,
+          fileName: file.name,
+          fileSizeBytes: file.size,
+          fileType: file.type,
+          isLiveModel: data.isLiveModel !== false
+        };
+      } else {
+        // Server returned an error (e.g. 422 rejected, 503 offline)
+        return {
+          fileName: file.name,
+          fileSizeBytes: file.size,
+          fileType: file.type,
+          analysisStatus: data.analysisStatus || 'error',
+          isLiveModel: false,
+          error: data.error || 'Analysis Failed',
+          message: data.message || `Backend responded with error code ${res.status}`,
+          detections: []
+        };
+      }
+    } catch (gatewayErr) {
+      // If gateway is down or unreachable, attempt direct AI Service connection on port 8001
       try {
-        const formData = new FormData();
-        formData.append('image', file);
-        const res = await fetch(`${this.baseUrl}/api/vision/analyze`, {
+        const directRes = await fetch('http://127.0.0.1:8001/predict', {
           method: 'POST',
           body: formData
         });
-        if (res.ok) {
-          const liveVision = await res.json();
-          return { ...liveVision, isLiveModel: liveVision.isLiveModel || false };
+        const data = await directRes.json();
+        if (directRes.ok) {
+          return {
+            ...data,
+            fileName: file.name,
+            fileSizeBytes: file.size,
+            fileType: file.type,
+            isLiveModel: true
+          };
+        } else {
+          return {
+            fileName: file.name,
+            analysisStatus: 'rejected',
+            isLiveModel: false,
+            error: 'Inference Rejected',
+            message: data.detail || 'Image rejected by vision model.',
+            detections: []
+          };
         }
-      } catch {}
+      } catch (directErr) {
+        // Both gateway and direct AI service are unreachable - report authentic offline state
+        return {
+          fileName: file.name,
+          fileSizeBytes: file.size,
+          fileType: file.type,
+          analysisStatus: 'offline',
+          isLiveModel: false,
+          error: 'AI Vision Service Offline',
+          message: 'Unable to connect to the AI Vision backend on port 8000 or port 8001. Please ensure the Python service is running (npm run ai-service).',
+          detections: []
+        };
+      }
     }
-
-    return {
-      fileName: file.name,
-      fileSizeBytes: file.size,
-      fileType: file.type,
-      analysisStatus: 'simulated_heuristic',
-      isLiveModel: false,
-      disclaimer: 'HEURISTIC PREVIEW: Backend vision neural network not detected. This is a rule-based mock demonstration.',
-      detections: [
-        {
-          class: 'Water Dripping / Pipe Leak',
-          confidence: 0.94,
-          severity: 'high',
-          suggestedLocation: 'Cafeteria - Utility Pipe Wall',
-          recommendation: 'Potential valve gasket degradation detected. Recommend maintenance dispatch.',
-          boundingBox: { x: 32, y: 48, width: 28, height: 35 }
-        }
-      ]
-    };
   }
 
   /**

@@ -26,10 +26,15 @@ class VisionDetection(BaseModel):
 
     detection_id: str = Field(..., description="Unique UUID for this detection event")
     target_class: str = Field(..., alias="class", description="Identified class label")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Calibrated confidence score [0.0, 1.0]")
-    is_uncertain: bool = Field(default=False, description="Flagged true if confidence is below calibrated threshold")
+    category: str = Field(default="Infrastructure Diagnostic", description="Taxonomic category")
+    evidence: str = Field(default="", description="Concrete visual evidence observed in the image pixels")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score [0.0, 1.0]")
+    confidence_meaning: str = Field(default="Model detection confidence score", alias="confidenceMeaning", description="Explicit definition of what the confidence score represents")
+    is_uncertain: bool = Field(default=False, alias="isUncertain", description="Flagged true if prediction is low-confidence or ambiguous")
+    requires_human_review: bool = Field(default=False, alias="requiresHumanReview", description="Requires facility manager manual review")
     severity: str = Field(..., description="Candidate severity: 'low', 'medium', 'high', 'critical'")
-    suggested_location: Optional[str] = Field(None, alias="suggestedLocation")
+    severity_rule: str = Field(default="", alias="severityRule", description="Deterministic rule or condition used to assign this severity")
+    suggested_location: Optional[str] = Field("Location not provided", alias="suggestedLocation")
     recommendation: str = Field(..., description="Actionable immediate maintenance recommendation")
     bounding_box: Optional[BoundingBox] = Field(None, alias="boundingBox")
     estimated_weight_kg: Optional[float] = Field(None, alias="estimatedWeightKg")
@@ -39,8 +44,8 @@ class VisionAnalysisResponse(BaseModel):
     """Standardized response from Computer Vision inference."""
     model_config = ConfigDict(populate_by_name=True)
 
-    analysis_status: str = Field(..., alias="analysisStatus", description="'completed' | 'uncertain' | 'rejected' | 'simulated_heuristic'")
-    model_name: str = Field(default="ecopulse-cv-yolo-v8.2", alias="modelName")
+    analysis_status: str = Field(..., alias="analysisStatus", description="'completed' | 'no_anomaly_detected' | 'outside_scope' | 'uncertain' | 'rejected'")
+    model_name: str = Field(default="MobileNetV2-ONNX + Calibrated Anomaly Engine", alias="modelName")
     model_version: str = Field(default="2.4.0", alias="modelVersion")
     is_live_model: bool = Field(default=True, alias="isLiveModel")
     is_demo_mode: bool = Field(default=False, alias="isDemoMode")
@@ -49,15 +54,17 @@ class VisionAnalysisResponse(BaseModel):
     image_metadata: Dict[str, Any] = Field(default_factory=dict, alias="imageMetadata")
     detections_count: int = Field(default=0, alias="detectionsCount")
     detections: List[VisionDetection] = Field(default_factory=list)
+    location_assigned: str = Field(default="Location not provided", alias="locationAssigned")
     limitations: List[str] = Field(
         default_factory=lambda: [
-            "Photographic classification detects visible visual patterns only.",
-            "Visual indication does NOT confirm subsurface piping rupture or active pressurized leak.",
+            "Photographic classification evaluates 2D visible surface optical patterns only.",
+            "Visual indication does NOT confirm internal plumbing rupture or pressurized pipe failure without flow sensor telemetry.",
+            "Specular reflections, glossy paint, and directional glare can trigger false positive moisture warnings.",
             "Physical inspection and acoustic/sensor cross-validation required before intrusive maintenance."
         ]
     )
     disclaimer: str = Field(
-        default="AI Computer Vision neural network diagnostic inference. Outputs are advisory.",
+        default="AI Computer Vision diagnostic inference. Confidence reflects visual feature alignment, not verified hydraulic ground truth. Outputs are strictly advisory.",
         description="Responsible AI advisory notice"
     )
 

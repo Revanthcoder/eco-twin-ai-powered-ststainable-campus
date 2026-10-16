@@ -12,7 +12,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().default('file:./dev.db'),
   JWT_SECRET: z.string().min(8).default('super_secret_dev_campus_jwt_key_2026_xyz987'),
   JWT_EXPIRES_IN: z.string().default('24h'),
-  AI_SERVICE_URL: z.string().url().default('http://localhost:8000'),
+  AI_SERVICE_URL: z.string().url().default('http://127.0.0.1:8001'),
   AI_SERVICE_TIMEOUT_MS: z.coerce.number().default(5000),
   AI_MOCK_FALLBACK: z.coerce.boolean().default(true),
   DEFAULT_GRID_EMISSION_FACTOR: z.coerce.number().default(0.82), // kg CO2e / kWh

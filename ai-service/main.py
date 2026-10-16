@@ -13,6 +13,13 @@ current_dir = Path(__file__).resolve().parent
 if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
 
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 import uvicorn
 from app.config import config
 
@@ -21,11 +28,11 @@ HOST = config.host
 
 def run_server():
     print("====================================================")
-    print(f"  🤖 EcoNexus AI Intelligence Service (v{config.version})")
-    print(f"  🚀 Server URL: http://127.0.0.1:{PORT}")
-    print(f"  📡 Health Check: http://127.0.0.1:{PORT}/health")
-    print(f"  🔍 Interactive Docs: http://127.0.0.1:{PORT}/docs")
-    print(f"  🌐 EcoImpact Workflow: http://127.0.0.1:{PORT}/api/intelligence/analyze")
+    print(f"  [*] EcoNexus AI Intelligence Service (v{config.version})")
+    print(f"  [*] Server URL: http://127.0.0.1:{PORT}")
+    print(f"  [*] Health Check: http://127.0.0.1:{PORT}/health")
+    print(f"  [*] Interactive Docs: http://127.0.0.1:{PORT}/docs")
+    print(f"  [*] EcoImpact Workflow: http://127.0.0.1:{PORT}/api/intelligence/analyze")
     print("====================================================")
     uvicorn.run("app.main:app", host=HOST, port=PORT, reload=False, log_level="info")
 

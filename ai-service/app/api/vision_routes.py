@@ -27,6 +27,7 @@ async def analyze_vision_endpoint(
     request: Request,
     image: Optional[UploadFile] = File(None),
     file: Optional[UploadFile] = File(None),
+    location: Optional[str] = Form(None),
     building_id: Optional[str] = Form(None),
     zone_id: Optional[str] = Form(None),
     confidence_threshold: Optional[float] = Form(None)
@@ -70,7 +71,7 @@ async def analyze_vision_endpoint(
         response = vision_engine.analyze_image(
             image_bytes=image_bytes,
             content_type=content_type,
-            building_id=building_id,
+            building_id=building_id or location,
             zone_id=zone_id,
             confidence_threshold=confidence_threshold
         )

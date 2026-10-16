@@ -423,9 +423,6 @@
 }
 
 .clear-preview-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -435,10 +432,65 @@
   align-items: center;
   justify-content: center;
   color: white;
+  cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .clear-preview-btn:hover { background: rgba(239, 68, 68, 0.7); }
+
+.preview-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 5;
+}
+
+.change-image-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: all var(--transition-fast);
+}
+
+.change-image-btn:hover {
+  background: rgba(16, 185, 129, 0.8);
+  border-color: #10b981;
+}
+
+.btn-upload-browse {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.6rem 1.25rem;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-md);
+  color: #34d399;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin: 0.35rem 0;
+}
+
+.btn-upload-browse:hover {
+  background: rgba(16, 185, 129, 0.28);
+  border-color: #10b981;
+  color: #6ee7b7;
+  transform: translateY(-1px);
+}
 
 .sr-only {
   position: absolute;
@@ -564,6 +616,49 @@
 .det-location, .det-rec { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; }
 
 .no-detections { font-size: 0.85rem; color: var(--text-muted); }
+
+.status-indicator-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-online {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+
+.status-offline {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.location-dropdown {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.65rem;
+  font-size: 0.8rem;
+  width: 100%;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.location-dropdown:focus {
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+.det-evidence {
+  border-left: 3px solid #10b981;
+}
+
 
 /* ───────────────────────────────────────────────
    SMART ALERTS PAGE
@@ -2113,18 +2208,17 @@
 ═══════════════════════════════════════════════════ */
 .vision-bounding-box {
   position: absolute;
-  border: 2px dashed #f43f5e;
+  border: 2px solid #ef4444;
   border-radius: 4px;
   pointer-events: none;
-  box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
-  animation: pulseBox 2.5s infinite ease-in-out;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.45), inset 0 0 12px rgba(239, 68, 68, 0.15);
+  animation: pulseBox 2s infinite ease-in-out;
   transition: all var(--transition-fast);
 }
 
 .vision-bounding-box.active-target {
   border-color: #38bdf8;
-  border-style: solid;
-  box-shadow: 0 0 25px rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 25px rgba(56, 189, 248, 0.7), inset 0 0 16px rgba(56, 189, 248, 0.25);
 }
 
 .box-tag {
