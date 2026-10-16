@@ -78,3 +78,5 @@ backend/uploads/
 *.tar.gz
 *.zip
 .cache/
+
+.vercel
